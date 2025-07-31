@@ -1,0 +1,2 @@
+DROP TABLE IF EXISTS CompanySocialLink;
+DROP TABLE IF EXISTS Company;

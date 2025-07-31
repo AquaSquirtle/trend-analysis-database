@@ -1,0 +1,33 @@
+CREATE TABLE IF NOT EXISTS TrendAnalysis (
+  id SERIAL PRIMARY KEY,
+  company_id INTEGER NOT NULL REFERENCES Company(id) ON DELETE CASCADE,
+  time_period VARCHAR NOT NULL,
+  summary TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS TrendKeyword (
+  id SERIAL PRIMARY KEY,
+  trend_id INTEGER NOT NULL REFERENCES TrendAnalysis(id) ON DELETE CASCADE,
+  keyword_id INTEGER NOT NULL REFERENCES Keyword(id) ON DELETE CASCADE,
+  rank INTEGER,
+  score FLOAT
+);
+
+CREATE TABLE IF NOT EXISTS TrendHashtag (
+  id SERIAL PRIMARY KEY,
+  trend_id INTEGER NOT NULL REFERENCES TrendAnalysis(id) ON DELETE CASCADE,
+  hashtag_id INTEGER NOT NULL REFERENCES Hashtag(id) ON DELETE CASCADE,
+  rank INTEGER,
+  score FLOAT
+);
+
+CREATE TABLE IF NOT EXISTS ContentRecommendation (
+  id SERIAL PRIMARY KEY,
+  company_id INTEGER NOT NULL REFERENCES Company(id) ON DELETE CASCADE,
+  title VARCHAR NOT NULL,
+  content_format VARCHAR,
+  emotional_tone VARCHAR,
+  visual_style VARCHAR,
+  generated_at TIMESTAMP DEFAULT NOW()
+);

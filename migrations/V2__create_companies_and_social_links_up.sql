@@ -1,0 +1,17 @@
+CREATE TABLE IF NOT EXISTS Company (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES Users(id) ON DELETE CASCADE,
+  category VARCHAR,
+  business_type VARCHAR,
+  name VARCHAR NOT NULL,
+  description TEXT,
+  location VARCHAR,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS CompanySocialLink (
+  id SERIAL PRIMARY KEY,
+  company_id INTEGER NOT NULL REFERENCES Company(id) ON DELETE CASCADE,
+  social_id INTEGER NOT NULL REFERENCES SocialNetwork(id),
+  url VARCHAR NOT NULL
+);

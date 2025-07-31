@@ -1,0 +1,87 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: pbd_container
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER?err}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?err}
+      POSTGRES_DB: ${POSTGRES_DB?err}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  seeder:
+    build:
+      context: ./seed
+      dockerfile: Dockerfile-seed
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - APP_ENV=${APP_ENV}
+      - SEED_COUNT=${SEED_COUNT}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - VERSION=${MIGRATION_VERSION:-latest}
+    command: ["python", "seed.py"]
+    restart: "on-failure:5"
+  analytics:
+    build:
+      context: ./analytics
+      dockerfile: Dockerfile-analytics
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - ANALYST_NAMES=${ANALYST_NAMES}
+    command: ["python", "create_analytic_role.py"]
+    restart: "on-failure:5"
+
+  flyway:
+    image: flyway/flyway:11
+    depends_on:
+      - postgres
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      FLYWAY_USER: ${POSTGRES_USER}
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD}
+      FLYWAY_CONNECT_RETRIES: 10
+      FLYWAY_TARGET: ${MIGRATION_VERSION:-latest}
+    volumes:
+      - ./migrations:/flyway/sql
+    command: ["migrate"]
+  flyway-test:
+    build:
+      context: ./flyway-test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations
+      - ./tmp:/tmp
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    entrypoint: ["/entrypoint.sh"]
+
+
+volumes:
+  pgdata:
